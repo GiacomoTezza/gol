@@ -20,6 +20,7 @@
 void update(int *board, int *old_gen, int rows, int cols) {
     int i = 0;
     int j = 0;
+    // Copy of the board to a temp board
     while (i < rows) {
         while (j < cols) {
             if (board[i * cols + j] == 0) {
@@ -27,13 +28,16 @@ void update(int *board, int *old_gen, int rows, int cols) {
             } else {
                 old_gen[i * cols + j] = 1;
             }
+            j++;
         }
+        i++;
     }
 
     int neighbours;
     while (i < rows) {
         while (j < cols) {
             neighbours = 0;
+
             for (int k = -1; k < 3; k++){
                 for (int l = -1; l < 3; l++){
                     neighbours += old_gen[(i+k) * cols + (j+l)];
@@ -47,7 +51,9 @@ void update(int *board, int *old_gen, int rows, int cols) {
             if (old_gen[i * cols + j] == 0 && neighbours == 3) {
                 board[i * cols + j] = 1;
             }
+            j++;
         }
+        i++;
     }
 }
 
@@ -65,23 +71,24 @@ void show(int *board, int rows, int cols) {
                 gotoxy(j, i);
                 backgroundgreen();
             }
+            j++;
         }
+        i++;
     }
 }
 
 
 int main(int argc, char const *argv[]) {
-    int c;
-
     struct winsize w;
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-    int rows = w.ws_row;
-    int cols = w.ws_col;
+    const int rows = w.ws_row;
+    const int cols = w.ws_col;
 
     printf("rows: %i\ncols: %i\n", rows, cols);
 
     // Board init
     int board[rows][cols];
+    printf("muori qui?");
     int old_gen[rows][cols];
     int r;
     int i, j = 0;
@@ -89,25 +96,28 @@ int main(int argc, char const *argv[]) {
         while (j < cols) {
             srand(time(NULL));
             r = rand();
+            printf("random: %i", r);
             if (r < 0.5) {
                 board[i][j] = 0;
             } else {
                 board[i][j] = 1;
             }
+            j++;
         }
+        i++;
     }
-    printf("initialization compleated");
+    printf("initialization completed");
 
     int *board_p = &board;
     int *old_gen_p = &old_gen;
 
     // Game Loop
-    // int loops = 100;
-    // while(loops > 0) {
-    //     show(*board_p, rows, cols);
-    //     //update(*board_p, *old_gen_p, rows, cols);
-    //     loops -= 1;
-    // }
+    int loops = 100;
+    while(loops > 0) {
+        show(*board_p, rows, cols);
+        update(*board_p, *old_gen_p, rows, cols);
+        loops -= 1;
+    }
 
     clear();
     return 0;
