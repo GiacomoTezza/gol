@@ -19,29 +19,27 @@
 static struct termios term, oterm;
 
 void update(int *board, int *old_gen, int rows, int cols) {
-    int i = 0;
-    int j = 0;
     // Copy of the board to a temp board
-    while (i < rows) {
-        while (j < cols) {
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
             if (board[i * cols + j] == 0) {
                 old_gen[i * cols + j] = 0;
             } else {
                 old_gen[i * cols + j] = 1;
             }
-            j++;
         }
-        i++;
     }
 
     int neighbours;
-    while (i < rows) {
-        while (j < cols) {
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
             neighbours = 0;
-
-            for (int k = -1; k < 3; k++){
-                for (int l = -1; l < 3; l++){
-                    neighbours += old_gen[(i+k) * cols + (j+l)];
+            
+            for (int k = -1; k < 2; k++){
+                for (int l = -1; l < 2; l++){
+                    if (!(k+i < 0 || k+i > rows - 1 || l+j < 0 || l+j > cols - 1)) {
+                        neighbours += old_gen[(i+k) * cols + (j+l)];
+                    }
                 }
             }
             neighbours -= old_gen[i * cols + j];
@@ -52,29 +50,25 @@ void update(int *board, int *old_gen, int rows, int cols) {
             if (old_gen[i * cols + j] == 0 && neighbours == 3) {
                 board[i * cols + j] = 1;
             }
-            j++;
         }
-        i++;
     }
 }
 
 
 void show(int *board, int rows, int cols) {
     clear();
-    int i = 0;
-    int j = 0;
-    while (i < rows) {
-        while (j < cols) {
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
             if (board[i * cols + j] == 0) {
-                gotoxy(j, i);
+                gotoxy(i, j);
                 backgroundblack();
+                printf(" ");
             } else {
-                gotoxy(j, i);
+                gotoxy(i, j);
                 backgroundgreen();
+                printf(" ");
             }
-            j++;
         }
-        i++;
     }
 }
 
@@ -85,15 +79,8 @@ int main(int argc, char const *argv[]) {
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
     const int rows = w.ws_row;
     const int cols = w.ws_col;
-    // const int rows = 3;
-    // const int cols = 3;
     int board[rows * cols];
     int old_gen[rows * cols];
-
-    // int board[9] = {0, 0, 0, 1, 1, 1, 0, 0, 0};
-    // int old_gen[9] = {0, 0, 0, 1, 1, 1, 0, 0, 0};
-
-    printf("rows: %i\ncols: %i\n", rows, cols);
 
     // Board init
     srand(time(NULL));
@@ -102,17 +89,15 @@ int main(int argc, char const *argv[]) {
             board[i * cols + j] = rand() % 2;
         }
     }
-    printf("init completed\n");
 
     int (*board_p)[] = &board;
     int (*old_gen_p)[] = &old_gen;
 
     // // Game Loop
-    int loops = 100;
-    while(loops > 0) {
+    while(1) {
         show(*board_p, rows, cols);
         update(*board_p, *old_gen_p, rows, cols);
-        loops -= 1;
+        usleep(50000); // microseconds
     }
 
     clear();
