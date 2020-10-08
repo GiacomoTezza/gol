@@ -61,9 +61,9 @@ int main(void) {
 		for (int i = 0; i < rows; i++) {
         	for (int j = 0; j < cols; j++) {
 				if (input_board[i * cols + j] == 1) {
-					createSquare(sprite_size * j, sprite_size * i, &oamSub, subGFX, ARGB16(1, 0, 255, 0));
+					createSquare(sprite_size * i, sprite_size * j, &oamSub, subGFX, ARGB16(1, 0, 255, 0));
 				} else {
-					createSquare(sprite_size * j, sprite_size * i, &oamSub, subGFX, ARGB16(1, 0, 0, 0));
+					createSquare(sprite_size * i, sprite_size * j, &oamSub, subGFX, ARGB16(1, 0, 0, 0));
 				}
 			}
 		}
