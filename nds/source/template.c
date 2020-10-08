@@ -47,18 +47,26 @@ int main(void) {
 		scanKeys();
 		int key = keysHeld();
 
-		// react to touch
+		// select cells to turn on
 		if(key & KEY_TOUCH) {
             touchRead(&touch); // set touch variable
+			int i = (int) touch.py / sprite_size
+			int j = (int) touch.px / sprite_size
+			input_board[i * cols + j] = 1
         }
-		// if(!key && touch.py < SCREEN_BOTTOM) {
-        //     touch.py += 1.0; // let the square fall but not go off the screen
-        // }
-        
 
-		// draw based on touch
-		createSquare(touch.px, touch.py, &oamMain, mainGFX, ARGB16(1, 31, 12, 12));
-		createSquare(touch.px, touch.py, &oamSub, subGFX, ARGB16(1, 12, 31, 12));
+		// createSquare(touch.px, touch.py, &oamMain, mainGFX, ARGB16(1, 31, 12, 12));
+		
+		// draw selection on touchscreen
+		for (int i = 0; i < rows; i++) {
+        	for (int j = 0; j < cols; j++) {
+				if (input_board[i * cols + j] == 1) {
+					createSquare(sprite_size * j, sprite_size * i, &oamSub, subGFX, ARGB16(1, 0, 255, 0));
+				} else {
+					reateSquare(sprite_size * j, sprite_size * i, &oamSub, subGFX, ARGB16(1, 0, 0, 0));
+				}
+			}
+		}
 
 		// draw screen
 		swiWaitForVBlank(); // prints the screen
