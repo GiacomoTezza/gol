@@ -50,9 +50,9 @@ int main(void) {
 		// select cells to turn on
 		if(key & KEY_TOUCH) {
             touchRead(&touch); // set touch variable
-			int i = (int) touch.py / sprite_size
-			int j = (int) touch.px / sprite_size
-			input_board[i * cols + j] = 1
+			int i = (int) touch.py / sprite_size;
+			int j = (int) touch.px / sprite_size;
+			input_board[i * cols + j] = 1;
         }
 
 		// createSquare(touch.px, touch.py, &oamMain, mainGFX, ARGB16(1, 31, 12, 12));
@@ -63,7 +63,7 @@ int main(void) {
 				if (input_board[i * cols + j] == 1) {
 					createSquare(sprite_size * j, sprite_size * i, &oamSub, subGFX, ARGB16(1, 0, 255, 0));
 				} else {
-					reateSquare(sprite_size * j, sprite_size * i, &oamSub, subGFX, ARGB16(1, 0, 0, 0));
+					createSquare(sprite_size * j, sprite_size * i, &oamSub, subGFX, ARGB16(1, 0, 0, 0));
 				}
 			}
 		}
