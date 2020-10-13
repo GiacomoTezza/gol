@@ -1,5 +1,7 @@
 #include <nds.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 // nintendo ds screen size
 const int WIDTH = 256;
@@ -7,122 +9,77 @@ const int HEIGHT = 192;
 
 // 16*12 sprite of 16*16
 // 32*24 sprite of 8*8
-const int sprite_size = 16;
+const int sprite_size = 32;
 const int rows = HEIGHT / sprite_size;
 const int cols = WIDTH / sprite_size;
 
-// sprite struct
 typedef struct {
 	u16* gfx;
+	SpriteSize size;
+	SpriteColorFormat format;
 	int color;
-	int x, y;
+	int paletteAlpha;
+	int x;
+	int y;
 } Sprite;
 
-Sprite mainBoard[rows * cols];
-Sprite subBoard[rows * cols];
+int main(int argc, char** argv) {
+    
+	videoSetModeSub(MODE_0_2D);
+	oamInit(&oamSub, SpriteMapping_Bmp_1D_128, false); //initialize the sub sprite engine with 1D mapping 128 byte boundary
+	vramSetBankD(VRAM_D_SUB_SPRITE);
 
-touchPosition touch;
-void addNewSquare(int j, int i, int c, int s);
-void createSquare(Sprite tmp_sprite, int count, OamState* screen);
-
-int main(void) {  
-    int board[rows * cols];
+	int board[rows * cols];
     int old_gen[rows * cols];
     int input_board[rows * cols];
 
-    // u16* mainGFX = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_Bmp);
-	// u16* subGFX = oamAllocateGfx(&oamSub, SpriteSize_16x16, SpriteColorFormat_Bmp);
-
-    // board init
-    srand(time(NULL));
+	srand(time(NULL));
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
-            board[i * cols + j] = 0;
-            input_board[i * cols + j] = 0;
-			addNewSquare(j, i, 0, 0); // add sprite in mainBoard
-			addNewSquare(j, i, 0, 1); // add sprite in subBoard
+			int state = rand() % 2;
+            board[i * cols + j] = state;
+            input_board[i * cols + j] = state;
         }
     }
 
-	// Set up the top screen
-	videoSetMode(MODE_0_2D);
-	vramSetBankA(VRAM_A_MAIN_SPRITE);
-	// set up the bottom screen
-	videoSetModeSub(MODE_0_2D);
-	vramSetBankD(VRAM_D_SUB_SPRITE);
+	int tile_colors[] = {
+		ARGB16(1, 0, 0, 0), // black (dead)
+		ARGB16(1, 0, 255, 0) // green (alive)
+	};
 
-	consoleDemoInit();
-
-	oamInit(&oamMain, SpriteMapping_1D_32, false);
-	oamInit(&oamSub, SpriteMapping_1D_32, false);
-
+	u16* gfx_array[6*8] = {0};
 
 	while(1) {
-		// scan for touch
-		scanKeys();
-		int key = keysHeld();
-
-		// select cells to turn on
-		if(key & KEY_TOUCH) {
-            touchRead(&touch); // set touch variable
-			int i = (int) touch.py / sprite_size;
-			int j = (int) touch.px / sprite_size;
-			input_board[i * cols + j] = 1;
-        }
-
-		// createSquare(touch.px, touch.py, &oamMain, mainGFX, ARGB16(1, 31, 12, 12));
-		
-		// draw selection on touchscreen
+		int count = 0;
 		for (int i = 0; i < rows; i++) {
         	for (int j = 0; j < cols; j++) {
-				mainBoard[i * cols + j].color = input_board[i * cols + j];
-				createSquare(mainBoard[i * cols + j], i * cols + j, &oamSub);
+				count++;
+				int tile = board[i * cols + j]; // select the color for selected tile
+				Sprite tmp = { 0, SpriteSize_32x32, SpriteColorFormat_Bmp, tile_colors[tile], 15, j * sprite_size, i * sprite_size };
+
+				if (gfx_array[count] == 0) { // you can only allocate once
+					gfx_array[count] = oamAllocateGfx(&oamSub, tmp.size, tmp.format); // allocate some space for the sprite graphics
+				}
+
+				dmaFillHalfWords(tmp.color, gfx_array[count], sprite_size*sprite_size*2); // fill each as a Red Square
+
+				oamSet(
+					&oamSub, //sub display
+					count, //oam entry to set
+					tmp.x, tmp.y, //position
+					0, //priority
+					tmp.paletteAlpha, //palette for 16 color sprite or alpha for bmp sprite
+					tmp.size, tmp.format, gfx_array[count], -1,
+					false, //double the size of rotated sprites
+					false, //don't hide the sprite
+					false, false, //vflip, hflip
+					false //apply mosaic
+				);
 			}
 		}
 
-		// draw screen
-		swiWaitForVBlank(); // prints the screen
-		// update oam
-		oamUpdate(&oamSub); // (sub) updates the oam before so VBlank can update the graphics on screen
-		oamUpdate(&oamMain); // (main) updates the oam before so VBlank can update the graphics on screen
+		swiWaitForVBlank();
+		oamUpdate(&oamSub); // send the updates to the hardware
 	}
-	return 0;
-}
-
-// adds new square to memory
-void addNewSquare(int j, int i, int c, int s) {
-	int color = ARGB16(1, 0, 255 * c, 0);	
-	int x = sprite_size * j;
-	int y = sprite_size * i;
-
-
-	Sprite tmp = {0, color, x, y};
-	if (s) {
-		tmp.gfx = oamAllocateGfx(&oamSub, SpriteSize_16x16, SpriteColorFormat_Bmp);
-		subBoard[i * cols + j] = tmp;
-	} else {
-		tmp.gfx = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_Bmp);
-		mainBoard[i * cols + j] = tmp;
-	}
-}
-
-// createSquare is a function that easily allows us to add a sprite on the screen with various properties.
-void createSquare(Sprite tmp_sprite, int count, OamState* screen) {
-	dmaFillHalfWords(tmp_sprite.color, tmp_sprite.gfx, 16*16*2); // fill each square with correct color
-
-	oamSet(
-		screen, // sub display
-		count, // oam entry to set
-		tmp_sprite.x, tmp_sprite.y, //position
-		0, // priority
-		15, // palette for 16 color sprite or alpha for bmp sprite
-		SpriteSize_16x16,
-		SpriteColorFormat_Bmp,
-		tmp_sprite.gfx,
-		0, // rotation
-		true, // double the size of rotated sprites
-		false, // don't hide the sprite
-		false, false, // vflip, hflip
-		false // apply mosaic
-	);
+	//return 0;
 }
