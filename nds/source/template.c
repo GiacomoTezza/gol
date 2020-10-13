@@ -23,6 +23,17 @@ typedef struct {
 	int y;
 } Sprite;
 
+void init(int *board, int *input_board) {
+	srand(time(NULL));
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+			int state = rand() % 2;
+            board[i * cols + j] = state;
+            input_board[i * cols + j] = state;
+        }
+    }
+}
+
 int main(int argc, char** argv) {
 
 	videoSetMode(MODE_0_2D);
@@ -37,14 +48,11 @@ int main(int argc, char** argv) {
     int old_gen[rows * cols];
     int input_board[rows * cols];
 
-	srand(time(NULL));
-    for (int i = 0; i < rows; i++) {
-        for (int j = 0; j < cols; j++) {
-			int state = rand() % 2;
-            board[i * cols + j] = state;
-            input_board[i * cols + j] = state;
-        }
-    }
+	int (*board_p)[] = &board;
+	int (*old_gen_p)[] = &old_gen;
+	int (*input_board_p)[] = &input_board;
+
+	init(*board_p, *input_board_p);
 
 	int tile_colors[] = {
 		ARGB16(1, 0, 0, 0), // black (dead)
