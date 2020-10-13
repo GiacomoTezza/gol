@@ -34,6 +34,42 @@ void init(int *board, int *input_board) {
     }
 }
 
+void update(int *board, int *old_gen) {
+    // Copy of the board to a temp board
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            if (board[i * cols + j] == 0) {
+                old_gen[i * cols + j] = 0;
+            } else {
+                old_gen[i * cols + j] = 1;
+            }
+        }
+    }
+
+    int neighbours;
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            neighbours = 0;
+            
+            for (int k = -1; k < 2; k++){
+                for (int l = -1; l < 2; l++){
+                    if (!(k+i < 0 || k+i > rows - 1 || l+j < 0 || l+j > cols - 1)) {
+                        neighbours += old_gen[(i+k) * cols + (j+l)];
+                    }
+                }
+            }
+            neighbours -= old_gen[i * cols + j];
+
+            if (old_gen[i * cols + j] == 1 && (neighbours < 2 || neighbours > 3)) {
+                board[i * cols + j] = 0;
+            }
+            if (old_gen[i * cols + j] == 0 && neighbours == 3) {
+                board[i * cols + j] = 1;
+            }
+        }
+    }
+}
+
 int main(int argc, char** argv) {
 
 	videoSetMode(MODE_0_2D);
@@ -52,14 +88,15 @@ int main(int argc, char** argv) {
 	int (*old_gen_p)[] = &old_gen;
 	int (*input_board_p)[] = &input_board;
 
-	init(*board_p, *input_board_p);
-
 	int tile_colors[] = {
 		ARGB16(1, 0, 0, 0), // black (dead)
 		ARGB16(1, 0, 255, 0) // green (alive)
 	};
 
-	u16* gfx_array[6*8] = {0};
+	init(*board_p, *input_board_p);
+
+	u16* gfx_main[6*8] = {0};
+	u16* gfx_sub[6*8] = {0};
 
 	while(1) {
 		int count = 0;
@@ -69,11 +106,11 @@ int main(int argc, char** argv) {
 				int tile = board[i * cols + j]; // select the color for selected tile
 				Sprite tmp = { 0, SpriteSize_32x32, SpriteColorFormat_Bmp, tile_colors[tile], 15, j * sprite_size, i * sprite_size };
 
-				if (gfx_array[count] == 0) { // you can only allocate once
-					gfx_array[count] = oamAllocateGfx(&oamMain, tmp.size, tmp.format); // allocate some space for the sprite graphics
+				if (gfx_main[count] == 0) { // you can only allocate once
+					gfx_main[count] = oamAllocateGfx(&oamMain, tmp.size, tmp.format); // allocate some space for the sprite graphics
 				}
 
-				dmaFillHalfWords(tmp.color, gfx_array[count], sprite_size*sprite_size*2); // fill each as a Red Square
+				dmaFillHalfWords(tmp.color, gfx_main[count], sprite_size*sprite_size*2); // fill each as a Red Square
 
 				oamSet(
 					&oamMain, //sub display
@@ -81,7 +118,7 @@ int main(int argc, char** argv) {
 					tmp.x, tmp.y, //position
 					0, //priority
 					tmp.paletteAlpha, //palette for 16 color sprite or alpha for bmp sprite
-					tmp.size, tmp.format, gfx_array[count], -1,
+					tmp.size, tmp.format, gfx_main[count], -1,
 					false, //double the size of rotated sprites
 					false, //don't hide the sprite
 					false, false, //vflip, hflip
@@ -90,8 +127,12 @@ int main(int argc, char** argv) {
 			}
 		}
 
+		update(*board_p, *old_gen_p);
+		usleep(1000000); // microseconds
+
 		swiWaitForVBlank();
-		oamUpdate(&oamMain); // send the updates to the hardware
+		oamUpdate(&oamMain);
+		oamUpdate(&oamSub);
 	}
 	//return 0;
 }
