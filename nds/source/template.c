@@ -24,13 +24,27 @@ typedef struct {
 	int y;
 } Sprite;
 
+touchPosition touch;
+
 void init(int *board, int *input_board) {
 	srand(time(NULL));
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
 			int state = rand() % 2;
             board[i * cols + j] = state;
-            input_board[i * cols + j] = state;
+            input_board[i * cols + j] = 0;
+        }
+    }
+}
+
+void input_init(int *board, int *input_board) {
+	for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            if (input_board[i * cols + j] == 0) {
+                board[i * cols + j] = 0;
+            } else {
+                board[i * cols + j] = 1;
+            }
         }
     }
 }
@@ -104,27 +118,57 @@ int main(int argc, char** argv) {
 		if(keysHeld() & KEY_A) {
 			init(*board_p, *input_board_p);
 		}
+		if(keysHeld() & KEY_X) {
+			input_init(*board_p, *input_board_p);
+		}
+		if(keysHeld() & KEY_TOUCH) {
+            touchRead(&touch); // set touch variable
+			int i = (int) touch.py / sprite_size;
+			int j = (int) touch.px / sprite_size;
+			input_board[i * cols + j] = 1;
+        }
 
 		int count = 0;
 		for (int i = 0; i < rows; i++) {
         	for (int j = 0; j < cols; j++) {
 				count++;
-				int tile = board[i * cols + j]; // select the color for selected tile
-				Sprite tmp = { 0, SpriteSize_32x32, SpriteColorFormat_Bmp, tile_colors[tile], 15, j * sprite_size, i * sprite_size };
+
+				int main_tile = board[i * cols + j];
+				Sprite main_tmp = { 0, SpriteSize_32x32, SpriteColorFormat_Bmp, tile_colors[main_tile], 15, j * sprite_size, i * sprite_size };
+
+				int sub_tile = input_board[i * cols + j];
+				Sprite sub_tmp = { 0, SpriteSize_32x32, SpriteColorFormat_Bmp, tile_colors[sub_tile], 15, j * sprite_size, i * sprite_size };
 
 				if (gfx_main[count] == 0) { // you can only allocate once
-					gfx_main[count] = oamAllocateGfx(&oamMain, tmp.size, tmp.format); // allocate some space for the sprite graphics
+					gfx_main[count] = oamAllocateGfx(&oamMain, main_tmp.size, main_tmp.format); // allocate some space for the sprite graphics
+				}
+				if (gfx_sub[count] == 0) { // you can only allocate once
+					gfx_sub[count] = oamAllocateGfx(&oamSub, sub_tmp.size, sub_tmp.format); // allocate some space for the sprite graphics
 				}
 
-				dmaFillHalfWords(tmp.color, gfx_main[count], sprite_size*sprite_size*2); // fill each as a Red Square
+				dmaFillHalfWords(main_tmp.color, gfx_main[count], sprite_size*sprite_size*2); // fill each as a Red Square
+				dmaFillHalfWords(sub_tmp.color, gfx_sub[count], sprite_size*sprite_size*2); // fill each as a Red Square
 
 				oamSet(
 					&oamMain, //sub display
 					count, //oam entry to set
-					tmp.x, tmp.y, //position
+					main_tmp.x, main_tmp.y, //position
 					0, //priority
-					tmp.paletteAlpha, //palette for 16 color sprite or alpha for bmp sprite
-					tmp.size, tmp.format, gfx_main[count], -1,
+					main_tmp.paletteAlpha, //palette for 16 color sprite or alpha for bmp sprite
+					main_tmp.size, main_tmp.format, gfx_main[count], -1,
+					false, //double the size of rotated sprites
+					false, //don't hide the sprite
+					false, false, //vflip, hflip
+					false //apply mosaic
+				);
+
+				oamSet(
+					&oamSub, //sub display
+					count, //oam entry to set
+					sub_tmp.x, sub_tmp.y, //position
+					0, //priority
+					sub_tmp.paletteAlpha, //palette for 16 color sprite or alpha for bmp sprite
+					sub_tmp.size, sub_tmp.format, gfx_sub[count], -1,
 					false, //double the size of rotated sprites
 					false, //don't hide the sprite
 					false, false, //vflip, hflip
