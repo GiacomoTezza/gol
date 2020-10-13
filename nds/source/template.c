@@ -27,7 +27,6 @@ typedef struct {
 touchPosition touch;
 
 void init(int *board, int *input_board) {
-	srand(time(NULL));
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
 			int state = rand() % 2;
@@ -47,6 +46,15 @@ void input_init(int *board, int *input_board) {
             }
         }
     }
+}
+
+void clear(int *board, int *input_board) {
+	for (int i = 0; i < rows; i++) {
+		for (int j = 0; j < cols; j++) {
+			board[i * cols + j] = 0;
+			input_board[i * cols + j] = 0;
+		}
+	}
 }
 
 void update(int *board, int *old_gen) {
@@ -87,6 +95,8 @@ void update(int *board, int *old_gen) {
 
 int main(int argc, char** argv) {
 
+	srand(time(NULL));
+
 	videoSetMode(MODE_0_2D);
 	oamInit(&oamMain, SpriteMapping_Bmp_1D_128, false);
 	vramSetBankA(VRAM_A_MAIN_SPRITE);
@@ -120,6 +130,9 @@ int main(int argc, char** argv) {
 		}
 		if(keysHeld() & KEY_X) {
 			input_init(*board_p, *input_board_p);
+		}
+		if(keysHeld() & KEY_B) {
+			clear(*board_p, *input_board_p);
 		}
 		if(keysHeld() & KEY_TOUCH) {
             touchRead(&touch); // set touch variable
