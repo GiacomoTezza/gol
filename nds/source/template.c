@@ -24,9 +24,13 @@ typedef struct {
 } Sprite;
 
 int main(int argc, char** argv) {
+
+	videoSetMode(MODE_0_2D);
+	oamInit(&oamMain, SpriteMapping_Bmp_1D_128, false);
+	vramSetBankA(VRAM_A_MAIN_SPRITE);
     
 	videoSetModeSub(MODE_0_2D);
-	oamInit(&oamSub, SpriteMapping_Bmp_1D_128, false); //initialize the sub sprite engine with 1D mapping 128 byte boundary
+	oamInit(&oamSub, SpriteMapping_Bmp_1D_128, false);
 	vramSetBankD(VRAM_D_SUB_SPRITE);
 
 	int board[rows * cols];
@@ -58,13 +62,13 @@ int main(int argc, char** argv) {
 				Sprite tmp = { 0, SpriteSize_32x32, SpriteColorFormat_Bmp, tile_colors[tile], 15, j * sprite_size, i * sprite_size };
 
 				if (gfx_array[count] == 0) { // you can only allocate once
-					gfx_array[count] = oamAllocateGfx(&oamSub, tmp.size, tmp.format); // allocate some space for the sprite graphics
+					gfx_array[count] = oamAllocateGfx(&oamMain, tmp.size, tmp.format); // allocate some space for the sprite graphics
 				}
 
 				dmaFillHalfWords(tmp.color, gfx_array[count], sprite_size*sprite_size*2); // fill each as a Red Square
 
 				oamSet(
-					&oamSub, //sub display
+					&oamMain, //sub display
 					count, //oam entry to set
 					tmp.x, tmp.y, //position
 					0, //priority
@@ -79,7 +83,7 @@ int main(int argc, char** argv) {
 		}
 
 		swiWaitForVBlank();
-		oamUpdate(&oamSub); // send the updates to the hardware
+		oamUpdate(&oamMain); // send the updates to the hardware
 	}
 	//return 0;
 }
