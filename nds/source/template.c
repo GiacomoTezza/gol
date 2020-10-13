@@ -7,6 +7,7 @@
 const int WIDTH = 256;
 const int HEIGHT = 192;
 
+// 8*6 sprite of 32*32
 // 16*12 sprite of 16*16
 // 32*24 sprite of 8*8
 const int sprite_size = 32;
@@ -93,12 +94,17 @@ int main(int argc, char** argv) {
 		ARGB16(1, 0, 255, 0) // green (alive)
 	};
 
-	init(*board_p, *input_board_p);
-
 	u16* gfx_main[6*8] = {0};
 	u16* gfx_sub[6*8] = {0};
 
+	init(*board_p, *input_board_p);
+
 	while(1) {
+		scanKeys();
+		if(keysHeld() & KEY_A) {
+			init(*board_p, *input_board_p);
+		}
+
 		int count = 0;
 		for (int i = 0; i < rows; i++) {
         	for (int j = 0; j < cols; j++) {
